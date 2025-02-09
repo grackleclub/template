@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	ErrValidation  = fmt.Errorf("template validation failed")
+	ErrValidation  = fmt.Errorf("strict checking: template validation failed")
 	ErrMissingData = fmt.Errorf("source data value not present")
 )
 
@@ -36,11 +36,10 @@ func NewAssets(filesystem fs.FS, directory string) (*Assets, error) {
 }
 
 // Make executes a set of templates (defined by their path) and injects arbitrary data.
+// When 'strict' is true, the rendered template is checked for the string representation
+// of every value in 'data'. If a value is not found, an ErrValidation is returned.
 //
-// # Strict Checking (slower)
-//
-// The package var 'Strict' can be set to validate that the string representation
-// of every value in 'data' is present in the final rendered template.
+// Template paths must be provided in the order they will be evaluated; parent -> child.
 func (h *Assets) Make(templatePaths []string, data interface{}, strict bool) (string, error) {
 	// todo can we not keep the filesystem obj since it's already parsed in New?
 	tmpl, err := template.ParseFS(h.fs, templatePaths...)
@@ -68,14 +67,13 @@ func (h *Assets) Make(templatePaths []string, data interface{}, strict bool) (st
 		for k, v := range content {
 			exptectedValue, ok := v.(string)
 			if !ok {
-				slog.Warn("strict check: k/v pair not parsable as string", "key", k, "value", v)
-				return "", fmt.Errorf("strict check: k/v pair not parsable as string: %w", ErrValidation)
+				return "", fmt.Errorf("%w: k/v pair not parsable as string", ErrValidation)
 			}
 			if !strings.Contains(buf.String(), exptectedValue) {
-				return "", fmt.Errorf("strict check: key %q: %w: %w", k, ErrMissingData, ErrValidation)
+				return "", fmt.Errorf("%w: %w: key %q", ErrValidation, ErrMissingData, k)
 			}
 			validated++
-			slog.Debug("strict check: data value succesfully found in rendered template", "key", k)
+			// slog.Debug("strict check: data value succesfully found in rendered template", "key", k)
 		}
 	}
 	slog.Info("template(s) executed",
@@ -87,8 +85,7 @@ func (h *Assets) Make(templatePaths []string, data interface{}, strict bool) (st
 	return buf.String(), nil
 }
 
-// parseContent parses a nested data structure into a flat map.
-// Used for testing template parsing.
+// parseContent parses a nested data structure into a flat map for validationg template output.
 func parseContent(data interface{}) (map[string]interface{}, error) {
 	result := make(map[string]interface{})
 	err := parseRecursive(data, "", result)
@@ -98,20 +95,20 @@ func parseContent(data interface{}) (map[string]interface{}, error) {
 	return result, nil
 }
 
-// parseRecursive parses a nested data structure into a flat map with only final values.
-// Used for testing template parsing.
+// parseRecursive parses a nested data structure into a flat map, and uses cursed reflection.
 func parseRecursive(data interface{}, prefix string, result map[string]interface{}) error {
 	val := reflect.ValueOf(data)
 	switch val.Kind() {
 	case reflect.Ptr:
-		// If it's a pointer, get the element it points to
 		return parseRecursive(val.Elem().Interface(), prefix, result)
 	case reflect.Struct:
-		// If it's a struct, iterate over its fields
 		for i := 0; i < val.NumField(); i++ {
 			field := val.Type().Field(i)
 			if !field.IsExported() {
-				continue // skip
+				// skip quietely here; rely on 'strict' checking to catch the omission,
+				// because an unexported field that is also missing from the template
+				// is none of our business.
+				continue
 			}
 			fieldValue := val.Field(i).Interface()
 			key := prefix + field.Name
@@ -121,7 +118,6 @@ func parseRecursive(data interface{}, prefix string, result map[string]interface
 			}
 		}
 	case reflect.Map:
-		// If it's a map, iterate over its keys and values
 		for _, key := range val.MapKeys() {
 			mapValue := val.MapIndex(key).Interface()
 			mapKey := fmt.Sprintf("%s%v", prefix, key)
@@ -131,7 +127,6 @@ func parseRecursive(data interface{}, prefix string, result map[string]interface
 			}
 		}
 	case reflect.Slice, reflect.Array:
-		// If it's a slice or array, iterate over its elements
 		for i := 0; i < val.Len(); i++ {
 			elem := val.Index(i).Interface()
 			key := fmt.Sprintf("%s[%d]", prefix, i)
