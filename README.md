@@ -4,7 +4,7 @@ Template package for go.
 
 ## How to Use
 
-1. Create a New `Assets` Object
+1. Create a new `Assets` for static files and templates.
     - **local** filesystem (testing)
         ```go
         assets, err := NewAssets(os.DirFS("."), ".")
