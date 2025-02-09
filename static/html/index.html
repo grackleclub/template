@@ -1,0 +1,16 @@
+<body>
+    <h1>{{ .Title }}</h1>
+    <h2>{{ .Body.Name }}</h2>
+    <p>Distance from the Sun: {{ .Body.Distance }} million km</p>
+    <p>Has Rings: {{ .Body.HasRings }}</p>
+    <p>Number of Moons: {{ .Body.Moons }}</p>
+    <p>Atmosphere: {{ range .Body.Atmosphere }}{{ . }} {{ end }}</p>
+    <p>Attributes:</p>
+    <ul>
+        {{ range $key, $value := .Body.Attributes }}
+        <li>{{ $key }}: {{ $value }}</li>
+        {{ end }}
+    </ul>
+    <p>Discovery Date: {{ .Body.Discovery.Format "January 2, 2006" }}</p>
+    {{ template "footer.html" . -}}
+</body>
