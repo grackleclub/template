@@ -19,8 +19,6 @@ var staticTestDir = path.Join("static")
 //go:embed static
 var static embed.FS
 
-// test types
-
 type planet struct {
 	Name       string
 	Distance   float64 // million km
@@ -96,19 +94,23 @@ func TestReadFS(t *testing.T) {
 }
 
 func TestMake(t *testing.T) {
-	templates := []string{"static/html/index.html", "static/html/footer.html"}
+	// notes: order matters! parent -> child
+	templates := []string{
+		"static/html/index.html",
+		"static/html/footer.html",
+	}
 
 	t.Run("local FS render", func(t *testing.T) {
-		s, err := NewAssets(os.DirFS("."), ".")
+		assets, err := NewAssets(os.DirFS("."), ".")
 		require.NoError(t, err)
-		rendered, err := s.Make(templates, pageVar, true)
+		rendered, err := assets.Make(templates, pageVar, true)
 		require.NoError(t, err)
 		t.Logf("rendered from local filesystem:\n%v\n", rendered)
 	})
 	t.Run("embed FS render", func(t *testing.T) {
-		s, err := NewAssets(static, "static")
+		assets, err := NewAssets(static, "static")
 		require.NoError(t, err)
-		rendered, err := s.Make(templates, pageVar, true)
+		rendered, err := assets.Make(templates, pageVar, true)
 		require.NoError(t, err)
 		t.Logf("rendered from embed filesystem\n%v\n", rendered)
 	})
