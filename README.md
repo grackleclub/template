@@ -16,6 +16,10 @@ Template package for go.
         ```
     - **embed** filesystem (production)
         ```go
+        // an embed filesystem to test expected production use cases
+        //
+        //go:embed static
+        var static embed.FS
         assets, err := NewAssets(static, "static")
         if err != nil {
             // handle error    
