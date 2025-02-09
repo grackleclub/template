@@ -2,6 +2,8 @@
 
 Template package for go.
 
+[![Go - Test](https://github.com/grackleclub/template/actions/workflows/test.yml/badge.svg)](https://github.com/grackleclub/template/actions/workflows/test.yml)
+
 ## How to Use
 
 1. Create a new `Assets` for static files and templates.
