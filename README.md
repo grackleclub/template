@@ -28,7 +28,7 @@ Template package for go.
     }
     ```
 
-1. Declare create a set of `type`s and `var`s that mirror the template fields in the prior step's templates. A "kitchen sink" nested complex example is shown:
+1. Declare create a set of `type`s and `var`s that mirror the template fields in the prior step's templates. Note that if a field is not exported (capitalized), it **cannot be read by template parsing**. A "kitchen sink" nested complex example is shown:
     ```go
     type planet struct {
         Name       string
@@ -70,9 +70,6 @@ Template package for go.
         Footer: FooterVar,
     }
     ```
-    > [!CAUTION]
-    > If a field is not exported (capitalized), it cannot be read by template parsing.
-
 
 4. Render the template using provided data.
     ```go
