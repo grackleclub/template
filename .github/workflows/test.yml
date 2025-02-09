@@ -1,0 +1,25 @@
+name: Go - Test
+on:
+  workflow_dispatch:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: 'stable'
+
+      - name: Install Executable Dependencies
+        run: go get ./...
+
+      - name: Vet Executable Dependencies
+        run: go vet ./...
+
+      - name: Test Executables
+        run: go test -v ./... -cover
